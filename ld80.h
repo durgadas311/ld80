@@ -119,6 +119,7 @@ struct node {
 	struct symbol *symbol;
 };
 
+extern struct loc rel_entry;
 extern int warn_extchain, debug;
 extern int fatalerror;
 extern struct segment *segv;

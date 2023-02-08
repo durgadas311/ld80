@@ -215,6 +215,12 @@ void add_item(struct object_item *item, char *filename)
 			die(E_INPUT, "ld80: Address chain is unimplemented."
 				" Contact the author.\n");
 		case C_END_PROGRAM:	/* 14 */
+			if (rel_entry.section == NULL &&
+				item->v.special.A_t != T_ABSOLUTE) {
+				rel_entry.section = secs[item->v.special.A_t];
+				rel_entry.offset = item->v.special.A_value;
+			}
+			break;
 		case C_END_FILE:	/* 15 */
 			break;
 		/********************** head *************************/

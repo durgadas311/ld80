@@ -16,6 +16,8 @@ int fatalerror;
 void usage(void);
 int setformat(char *name, int *format);
 
+struct loc rel_entry = {0};
+
 int main(int argc,char **argv)
 {
 	int n;
@@ -253,6 +255,8 @@ int main(int argc,char **argv)
 			die(E_USAGE,"ld80: Entry point '%s' not found.\n", entry_name);
 
 		entry_point = entry->value;
+	} else if (entry_point < 0 && rel_entry.section != NULL) {
+		entry_point = rel_entry.section->base + rel_entry.offset;
 	}
 
 	do_out(ofile, oformat, entry_point);
