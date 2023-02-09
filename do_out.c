@@ -5,6 +5,10 @@
 /* Write a record out to an Intel Hex file.  */
 /* This function is shamelessly stolen from GNU binutils, bfd/ihex.c */
 
+static int prog_load;
+static int prog_end;
+static int prog_len;
+
 static int
 ihex_write_record (FILE *f, int count, int addr, int type, unsigned char *data)
 {
@@ -84,6 +88,7 @@ void write_gap(FILE *f, int count, int oformat)
 	switch(oformat) {
 	case F_IHEX:	/* do nothing */
 		break;
+	case F_ABS:
 	case F_BIN00:
 		fillchar = '\0';
 		/* FALL THROUGH */
@@ -105,12 +110,44 @@ void write_block(FILE *f, unsigned char *aseg, int addr,
 	case F_IHEX:
 		ihex_write_block(f, aseg, addr, section_len);
 		break;
+	case F_ABS:
 	case F_BIN00:
 	case F_BINFF:
 		fwrite(aseg, 1, section_len, f);
 		break;
 	case F_CMD:
 		cmd_write_block(f, aseg, addr, section_len);
+		break;
+	default:
+		die(E_USAGE, "Output format %d is unimplemented\n", oformat);
+	}
+}
+
+static
+void initialize_out(FILE *f, int oformat, int entry_point)
+{
+	switch (oformat) {
+	case F_IHEX:
+		break;
+	case F_ABS:
+		{
+		static unsigned char buf[8];
+		if (entry_point < 0) entry_point = prog_load;
+		buf[0] = 0xff;
+		buf[1] = 0;
+		buf[2] = prog_load;
+		buf[3] = prog_load >> 8;
+		buf[4] = prog_len;
+		buf[5] = prog_len >> 8;
+		buf[6] = entry_point;
+		buf[7] = entry_point >> 8;
+		fwrite(buf, 1, sizeof(buf), f);
+		}
+		break;
+	case F_BIN00:
+	case F_BINFF:
+		break;
+	case F_CMD:
 		break;
 	default:
 		die(E_USAGE, "Output format %d is unimplemented\n", oformat);
@@ -127,6 +164,7 @@ void finalize_out(FILE *f, int oformat, int entry_point)
 
 		ihex_write_record(f, 0, entry_point, 1, NULL);
 		break;
+	case F_ABS:
 	case F_BIN00:
 	case F_BINFF:
 		break;
@@ -179,12 +217,43 @@ int unmarked_len(int addr)
 	return len;
 }
 
+static
+void program_range(void)
+{
+	int addr = 0;
+
+	/* find first address used */
+	while (addr <= 0xffff && UNMARKED8(addr)) {
+		addr += 8;
+	}
+	while (addr <= 0xffff && !MARKED(addr)) {
+		addr++;
+	}
+	/* lowest address used by program */
+	prog_load = addr;
+	/* now find highest address used */
+	addr = 0xfff8;
+	while (addr > 0x0000 && UNMARKED8(addr)) {
+		addr -= 8;
+	}
+	while (addr <= 0xffff && MARKED(addr)) {
+		addr++;
+	}
+	prog_end = addr;
+	prog_len = addr - prog_load;
+}
+
 int do_out(FILE *f, int oformat, int entry_point)
 {
 	int addr = 0;
 	int gap_len, section_len;
 	extern unsigned char *aseg;
 
+	program_range();
+	initialize_out(f, oformat, entry_point);
+	if (oformat == F_ABS) {
+		addr = prog_load;
+	}
 	while (1) {
 		gap_len = unmarked_len(addr);
 		addr += gap_len;

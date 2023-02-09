@@ -161,6 +161,10 @@ int main(int argc,char **argv)
 	}
 	if (abort) die(E_USAGE,"");
 
+	if (oformat == F_ABS) {
+		set_base_address(T_CODE, "", 0x2280, 0);
+	}
+
 	/*
 	 * Start processing object files.
 	 */
@@ -275,6 +279,7 @@ int setformat(char *name, int *format)
 	else if (!strcmp(name, "bin")) *format = F_BIN00;
 	else if (!strcmp(name, "binff")) *format = F_BINFF;
 	else if (!strcmp(name, "cmd")) *format = F_CMD;
+	else if (!strcmp(name, "abs")) *format = F_ABS;
 	else known = 0;
 
 	return known;
@@ -293,7 +298,7 @@ void usage(void)
 "Usage:\n"
 "ld80 [-O oformat] [-cmV] [-W warns] -o ofile [-s symfile] [-U name] ...\n"
 "     [-S symsize] input ...\n"
-"where oformat: ihex | hex | bin | binff | cmd\n"
+"where oformat: ihex | hex | bin | binff | cmd | abs\n"
 "        warns: extchain\n"
 "        input: [-l] [-P address] [-D address] [-C name,address] [-E entry]... file\n"
 	);

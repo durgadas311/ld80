@@ -14,6 +14,7 @@
 #define	F_BIN00		1	/* binary, gaps filled with 00 */
 #define	F_BINFF		2	/* binary, gaps filled with FF */
 #define F_CMD		3	/* TRS-80 CMD file format */
+#define F_ABS		4	/* Heath HDOS ABS */
 
 /* segment types */
 #define	T_ABSOLUTE	0x00
