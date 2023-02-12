@@ -38,6 +38,7 @@ int main(int argc,char **argv)
 	char *common_name = "COMMON";
 	char *optarg;
 	char *tmp;
+	unsigned char *rbits = NULL;
 
 	init_section();
 
@@ -172,12 +173,13 @@ int main(int argc,char **argv)
 	 */
 	init_symbol(symsize);
 
-	if (oformat == F_COM) {
+	if (IS_CPM(oformat)) {
 		struct object_item itm;
 
 		/* TODO: prevent overrides from commandline args */
-		set_base_address(T_CODE, "", 0x0100, 0);
-		entry_jmp = 0x0100;
+		int base = IS_CPM0100(oformat) ? 0x0100 : 0x0000;
+		set_base_address(T_CODE, "", base, 0);
+		entry_jmp = base;
 
 		/* These may need to be deleted later... */
 		itm.type = T_RELOCATABLE|T_SPECIAL;
@@ -189,9 +191,8 @@ int main(int argc,char **argv)
 		itm.type = T_ABSOLUTE;
 		itm.v.absolute_byte = 0xc3;
 		add_item(&itm, "<ld80>");
-		itm.v.absolute_byte = 0x00;	/* filled-in later */
-		add_item(&itm, "<ld80>");
-		itm.v.absolute_byte = 0x00;	/* filled-in later */
+		itm.type = T_RELOCATABLE|T_CODE;
+		itm.v.relative_word = -base;	/* filled-in later */
 		add_item(&itm, "<ld80>");
 	}
 
@@ -229,7 +230,7 @@ int main(int argc,char **argv)
 		set_base_address(type, common_name, n, align);
 		break;
 	case 1:		/* Input file */
-		read_object_file(optarg, lib);
+		read_object_file(optarg, lib, oformat);
 		lib = 0;
 		break;
 	}
@@ -250,15 +251,18 @@ int main(int argc,char **argv)
 	set_symbols();
 	IFDEBUG( dump_symbols(); )
 
+	if (IS_CPMRELO(oformat)) {
+		rbits = calloc_or_die(1, 0x10000 / 8);
+	}
 	IFDEBUG( printf("\nSetting fixups\n"); )
-	set_fixups();
+	set_fixups(rbits);
 	IFDEBUG( dump_sections(); )
 
 	IFDEBUG( printf("\nResolving externals\n"); )
 	resolve_externals();
 
 	IFDEBUG( printf("\nProcessing nodes\n"); )
-	process_nodes();
+	process_nodes(rbits);
 	IFDEBUG( dump_sections(); )
 
 	IFDEBUG( printf("\nJoining sections\n"); )
@@ -303,7 +307,7 @@ int main(int argc,char **argv)
 		}
 	}
 
-	do_out(ofile, oformat, entry_point);
+	do_out(ofile, oformat, entry_point, rbits);
 	fclose(ofile);
 
 	clear_symbol();
@@ -342,6 +346,8 @@ int setformat(char *name, int *format)
 	else if (!strcmp(name, "cmd")) *format = F_CMD;
 	else if (!strcmp(name, "abs")) *format = F_ABS;
 	else if (!strcmp(name, "com")) *format = F_COM;
+	else if (!strcmp(name, "prl")) *format = F_PRL;
+	else if (!strcmp(name, "spr")) *format = F_SPR;
 	else known = 0;
 
 	return known;
@@ -360,7 +366,7 @@ void usage(void)
 "Usage:\n"
 "ld80 [-O oformat] [-cmV] [-W warns] -o ofile [-s symfile] [-U name] ...\n"
 "     [-S symsize] input ...\n"
-"where oformat: ihex | hex | bin | binff | cmd | abs | com\n"
+"where oformat: ihex | hex | bin | binff | cmd | abs | com | prl | spr\n"
 "        warns: extchain\n"
 "        input: [-l] [-P address] [-D address] [-C name,address] [-E entry]... file\n"
 	);

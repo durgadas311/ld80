@@ -75,7 +75,7 @@ void convert_chain_to_nodes(char *name, int offset, struct section *section)
 	}
 }
 
-void set_fixups(void)
+void set_fixups(unsigned char *rbits)
 {
 	struct segment *segp;
 	struct section *sp;
@@ -85,6 +85,9 @@ void set_fixups(void)
 	for (segp=segv; segp<=segv+T_COMMON || segp->secs; segp++) {
 		for (sp=segp->secs; sp; sp=sp->next) {/* all sections */
 			for (f=sp->fixups; f; ff=f, f=f->next, free(ff)) {
+				if (rbits) {
+					SET_BIT(rbits, sp->base + f->lc + 1);
+				}
 				p = sp->buffer + f->lc;
 				*((unsigned short *)p) = (unsigned short)
 					(f->at.section->base + f->at.offset);
@@ -165,7 +168,7 @@ void sort_nodes(struct section *sp)
 	return;
 }
 
-void process_nodes(void)
+void process_nodes(unsigned char *rbits)
 {
 	struct segment *segp;
 	struct section *sp;
@@ -214,6 +217,9 @@ void process_nodes(void)
 					"value=%.4x\n",
 					sp, n->at.offset, n->value&0xffff);
 #endif
+				if (rbits) {
+					SET_BIT(rbits, sp->base + n->at.offset + 1);
+				}
 				*((short*)p) = n->value;
 				break;
 			case N_NOT:

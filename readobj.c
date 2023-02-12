@@ -35,6 +35,7 @@ static FILE *objectfile;
 static char *objfilename;
 static int libsearch;
 static int bitpos;
+static int spcl_exts;
 
 static
 int get_bit(void)
@@ -171,6 +172,10 @@ int read_module(void)
 #ifdef DEBUG
 			if (debug>1) dump_item(&item);
 #endif
+			if (item.type == (T_RELOCATABLE|T_SPECIAL) &&
+				item.v.special.control == C_EXTENSION) {
+				++spcl_exts;
+			}
 			add_item(&item, objfilename);
 		}
 	}
@@ -178,7 +183,7 @@ int read_module(void)
 	return !read_item_buffered(&item, EOF_ELEMENT);
 }
 
-int read_object_file(char *filename, int lib)
+int read_object_file(char *filename, int lib, int oformat)
 {
 	int modcnt = 0;
 
@@ -191,8 +196,13 @@ int read_object_file(char *filename, int lib)
 
 	objfilename = filename;
 	libsearch = lib;
+	spcl_exts = 0;
 	while(read_module()) modcnt++;
 	fclose(objectfile);
+	if (spcl_exts && IS_CPMRELO(oformat)) {
+		fprintf(stderr, "Unsupported special link extension in %s\n", filename);
+		fatalerror = 1;
+	}
 	return modcnt;
 }
 

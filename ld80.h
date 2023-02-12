@@ -16,6 +16,15 @@
 #define F_CMD		3	/* TRS-80 CMD file format */
 #define F_ABS		4	/* Heath HDOS ABS */
 #define F_COM		5	/* CP/M COM */
+#define F_PRL		6	/* CP/M PRL */
+#define F_SPR		7	/* CP/M SPR */
+
+/* oformats that (may) require CP/M-style JMP ENTRY */
+#define IS_CPM(of)	((of) == F_COM || (of) == F_PRL || (of) == F_SPR)
+/* CP/M oformats that use ORG 0100h */
+#define IS_CPM0100(of)	((of) == F_COM || (of) == F_PRL)
+/* CP/M oformats that add a relocation bitmap */
+#define IS_CPMRELO(of)	((of) == F_SPR || (of) == F_PRL)
 
 /* segment types */
 #define	T_ABSOLUTE	0x00
@@ -121,6 +130,9 @@ struct node {
 	struct symbol *symbol;
 };
 
+/* For CP/M-style relocation bitmaps */
+#define SET_BIT(map, bit)	(map)[(bit)/8] |= 0x80 >> ((bit)%8)
+
 extern struct loc rel_entry;
 extern int warn_extchain, debug;
 extern int fatalerror;
@@ -138,7 +150,7 @@ extern unsigned char usage_map[];
 void die(int, const char*, ...) __attribute__ ((__noreturn__));
 void *calloc_or_die(size_t, size_t);
 
-int read_object_file(char *, int);
+int read_object_file(char *, int, int);
 
 void set_base_address(int, char *, int, int);
 void mark_uncommon(char *);
@@ -160,13 +172,13 @@ void set_symbols(void);
 void print_symbol_table(FILE *);
 
 void add_fixup(struct section *, struct section *, int);
-void set_fixups(void);
+void set_fixups(unsigned char *);
 void resolve_externals(void);
 void convert_chain_to_nodes(char *, int, struct section *);
-void process_nodes(void);
+void process_nodes(unsigned char *);
 struct node *add_node(struct section *, int, int);
 
-int do_out(FILE *, int, int);
+int do_out(FILE *, int, int, unsigned char *);
 
 extern int optget_ind;
 extern int optget(int argc, char **argv, char *options, char **arg);

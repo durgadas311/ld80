@@ -98,6 +98,14 @@ If none specified, the first entry point found in a <i>objectfile</i> will be us
 
 <p><b>com</b>: CP/M .COM file format. Program ORG is set to 0x0100. <b>-P</b> and <b>-D</b> should not be used. If an alternate entry point is defined, a jump to it will be placed at 0x0100.</p>
 
+<p><b>prl</b>: CP/M .PRL file format. Program ORG is set to 0x0100.
+<b>-P</b> and <b>-D</b> should not be used.
+If an alternate entry point is defined, a jump to it will be placed at 0x0100.</p>
+
+<p><b>spr</b>: CP/M .SPR file format. Program ORG is set to 0x0000.
+<b>-P</b> and <b>-D</b> should not be used.
+If an alternate entry point is defined, a jump to it will be placed at 0x0000.</p>
+
 </dd>
 <dt id="W-warns"><b>-W</b> <i>warns</i></dt>
 <dd>
@@ -164,6 +172,13 @@ If none specified, the first entry point found in a <i>objectfile</i> will be us
 <p>Special link item 12 (chan address) is also unimplemented. This is because the author has never seen this kind of item. :-) <b>ld80</b> will abort if it finds one.</p>
 
 <p>Extension link item X&#39;35&#39; (COBOL overlay segment sentinel) is also unimplemented due to the same reason. However other extension link items (known as arithmetic fixups) are fully implemented.</p>
+
+<p>Special link extensions (item 4) are not allowed
+in object files for PRL and SPR formats.
+This is because there is currently no way to determine
+relocation bitmaps for those items.
+Digital Research's LINK.COM also did not recognize those items.
+</p>
 
 <h1 id="PORTING">PORTING</h1>
 

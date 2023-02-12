@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "ld80.h"
 
 #define	CHUNK	32
@@ -88,6 +89,8 @@ void write_gap(FILE *f, int count, int oformat)
 	switch(oformat) {
 	case F_IHEX:	/* do nothing */
 		break;
+	case F_PRL:
+	case F_SPR:
 	case F_ABS:
 	case F_COM:
 	case F_BIN00:
@@ -111,6 +114,8 @@ void write_block(FILE *f, unsigned char *aseg, int addr,
 	case F_IHEX:
 		ihex_write_block(f, aseg, addr, section_len);
 		break;
+	case F_PRL:
+	case F_SPR:
 	case F_ABS:
 	case F_COM:
 	case F_BIN00:
@@ -146,6 +151,20 @@ void initialize_out(FILE *f, int oformat, int entry_point)
 		fwrite(buf, 1, sizeof(buf), f);
 		}
 		break;
+	case F_PRL:
+	case F_SPR:
+		{
+		static unsigned char buf[256];
+		memset(buf, 0, sizeof(buf));
+		buf[1] = prog_len;
+		buf[2] = prog_len >> 8;
+		/* TODO: banked SPR
+		 * buf[10] = bnk_len;
+		 * buf[11] = bnk_len >> 8;
+		 */
+		fwrite(buf, 1, sizeof(buf), f);
+		}
+		break;
 	case F_COM:
 	case F_BIN00:
 	case F_BINFF:
@@ -158,7 +177,7 @@ void initialize_out(FILE *f, int oformat, int entry_point)
 }
 
 static
-void finalize_out(FILE *f, int oformat, int entry_point)
+void finalize_out(FILE *f, int oformat, int entry_point, unsigned char *rbits)
 {
 	switch (oformat) {
 	case F_IHEX:
@@ -166,6 +185,12 @@ void finalize_out(FILE *f, int oformat, int entry_point)
 			entry_point = 0;
 
 		ihex_write_record(f, 0, entry_point, 1, NULL);
+		break;
+	case F_PRL:
+	case F_SPR:
+		/* assert(rbits) */
+		/* TODO: error if (prog_load % 8 != 0) */
+		fwrite(rbits + (prog_load / 8), 1, (prog_len + 7) / 8, f);
 		break;
 	case F_ABS:
 	case F_COM:
@@ -247,7 +272,7 @@ void program_range(void)
 	prog_len = addr - prog_load;
 }
 
-int do_out(FILE *f, int oformat, int entry_point)
+int do_out(FILE *f, int oformat, int entry_point, unsigned char *rbits)
 {
 	int addr = 0;
 	int gap_len, section_len;
@@ -257,7 +282,7 @@ int do_out(FILE *f, int oformat, int entry_point)
 	initialize_out(f, oformat, entry_point);
 	if (oformat == F_ABS) {
 		addr = prog_load;
-	} else if (oformat == F_COM) {
+	} else if (IS_CPM0100(oformat)) {
 		addr = 0x0100;
 	}
 	while (1) {
@@ -271,7 +296,7 @@ int do_out(FILE *f, int oformat, int entry_point)
 		write_block(f, aseg+addr, addr, section_len, oformat);
 		addr += section_len;
 	}
-	finalize_out(f, oformat, entry_point);
+	finalize_out(f, oformat, entry_point, rbits);
 	return 0;
 }
 
