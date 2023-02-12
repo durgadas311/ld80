@@ -96,6 +96,8 @@ If none specified, the first entry point found in a <i>objectfile</i> will be us
 
 <p><b>abs</b>: HDOS .ABS file format. Default program ORG is 0x2280.</p>
 
+<p><b>com</b>: CP/M .COM file format. Program ORG is set to 0x0100. <b>-P</b> and <b>-D</b> should not be used. If an alternate entry point is defined, a jump to it will be placed at 0x0100.</p>
+
 </dd>
 <dt id="W-warns"><b>-W</b> <i>warns</i></dt>
 <dd>

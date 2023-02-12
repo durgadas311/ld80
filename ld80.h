@@ -15,6 +15,7 @@
 #define	F_BINFF		2	/* binary, gaps filled with FF */
 #define F_CMD		3	/* TRS-80 CMD file format */
 #define F_ABS		4	/* Heath HDOS ABS */
+#define F_COM		5	/* CP/M COM */
 
 /* segment types */
 #define	T_ABSOLUTE	0x00
@@ -142,6 +143,7 @@ int read_object_file(char *, int);
 void set_base_address(int, char *, int, int);
 void mark_uncommon(char *);
 void add_item(struct object_item *, char *);
+void delete_section(int, char *);
 void relocate_sections(void);
 void dump_sections(void);
 void init_section(void);

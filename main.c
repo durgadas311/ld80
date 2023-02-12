@@ -12,9 +12,11 @@
 int warn_extchain, debug;
 static char *ofilename, *symfilename;
 int fatalerror;
+static int entry_jmp = -1;
 
 void usage(void);
 int setformat(char *name, int *format);
+static void check_entry(char *name, int point);
 
 struct loc rel_entry = {0};
 
@@ -170,6 +172,29 @@ int main(int argc,char **argv)
 	 */
 	init_symbol(symsize);
 
+	if (oformat == F_COM) {
+		struct object_item itm;
+
+		/* TODO: prevent overrides from commandline args */
+		set_base_address(T_CODE, "", 0x0100, 0);
+		entry_jmp = 0x0100;
+
+		/* These may need to be deleted later... */
+		itm.type = T_RELOCATABLE|T_SPECIAL;
+		itm.v.special.control = C_PROG_SIZE;
+		strncpy((char *)itm.v.special.B_name, "<ld80>", NAMELEN);
+		itm.v.special.A_value = 3;
+		itm.v.special.A_t = T_CODE;
+		add_item(&itm, "<ld80>");
+		itm.type = T_ABSOLUTE;
+		itm.v.absolute_byte = 0xc3;
+		add_item(&itm, "<ld80>");
+		itm.v.absolute_byte = 0x00;	/* filled-in later */
+		add_item(&itm, "<ld80>");
+		itm.v.absolute_byte = 0x00;	/* filled-in later */
+		add_item(&itm, "<ld80>");
+	}
+
 	optget_ind = 0;	/* make reinitialize optget() */
 	while ((c = optget (argc2, argv2, "lD:P:C:", &optarg)) != -1) switch (c) {
 	case 'l':	/* Library to search in */
@@ -209,6 +234,8 @@ int main(int argc,char **argv)
 		break;
 	}
 	free(argv2);
+
+	check_entry(entry_name, entry_point);
 
 #ifdef	DEBUG
 #define IFDEBUG(x)	if (debug) x
@@ -262,12 +289,46 @@ int main(int argc,char **argv)
 	} else if (entry_point < 0 && rel_entry.section != NULL) {
 		entry_point = rel_entry.section->base + rel_entry.offset;
 	}
+	if (entry_jmp >= 0) {
+		extern unsigned char *aseg;
+		int addr = entry_jmp;
+		if (aseg[addr] == 0xc3 && aseg[addr + 1] == 0x00 &&
+				aseg[addr + 2] == 0x00) {
+			aseg[addr + 1] = entry_point;
+			aseg[addr + 2] = entry_point >> 8;
+		} else {
+			die(E_INPUT, "Failed to fixup JMP %04x: %04x %02x %02x %02x\n",
+				entry_point, addr, aseg[addr],
+				aseg[addr + 1], aseg[addr + 2]);
+		}
+	}
 
 	do_out(ofile, oformat, entry_point);
 	fclose(ofile);
 
 	clear_symbol();
 	die(fatalerror ? E_INPUT : E_SUCCESS, "");
+}
+
+static
+void check_entry(char *name, int point)
+{
+	if (entry_jmp < 0) return;
+	if (name || point >= 0) {
+		/* specific entry point, keep JMP */
+		return;
+	}
+	if (rel_entry.section != NULL) {
+		/* an entry point was found in the object files */
+		int entry = rel_entry.section->base + rel_entry.offset;
+		if (entry > entry_jmp + 3) {
+			/* non-trivial entry point, keep JMP */
+			return;
+		}
+	}
+	/* JMP ENTRY is not needed, or not possible */
+	entry_jmp = -1;
+	delete_section(T_CODE, "<ld80>");
 }
 
 int setformat(char *name, int *format)
@@ -280,6 +341,7 @@ int setformat(char *name, int *format)
 	else if (!strcmp(name, "binff")) *format = F_BINFF;
 	else if (!strcmp(name, "cmd")) *format = F_CMD;
 	else if (!strcmp(name, "abs")) *format = F_ABS;
+	else if (!strcmp(name, "com")) *format = F_COM;
 	else known = 0;
 
 	return known;
@@ -298,7 +360,7 @@ void usage(void)
 "Usage:\n"
 "ld80 [-O oformat] [-cmV] [-W warns] -o ofile [-s symfile] [-U name] ...\n"
 "     [-S symsize] input ...\n"
-"where oformat: ihex | hex | bin | binff | cmd | abs\n"
+"where oformat: ihex | hex | bin | binff | cmd | abs | com\n"
 "        warns: extchain\n"
 "        input: [-l] [-P address] [-D address] [-C name,address] [-E entry]... file\n"
 	);

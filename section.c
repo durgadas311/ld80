@@ -253,6 +253,27 @@ void init_section(void)
 	}
 }
 
+void delete_section(int type, char *filename)
+{
+	struct segment *seg;
+	struct section **pp;
+	int adj = 0;
+
+	if (type >= T_COMMON) return;
+	seg = search_segment(type, "", A_ENTER);
+	for (pp = &seg->secs; *pp;) {
+		if (strcmp(filename, (*pp)->filename) == 0) {
+			adj += (*pp)->len;
+			*pp = (*pp)->next;
+		} else {
+			if (adj) {
+				(*pp)->base -= adj;
+			}
+			pp = &((*pp)->next);
+		}
+	}
+}
+
 static
 struct segment *search_segment(int type, char *common_name, int action)
 {

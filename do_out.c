@@ -89,6 +89,7 @@ void write_gap(FILE *f, int count, int oformat)
 	case F_IHEX:	/* do nothing */
 		break;
 	case F_ABS:
+	case F_COM:
 	case F_BIN00:
 		fillchar = '\0';
 		/* FALL THROUGH */
@@ -111,6 +112,7 @@ void write_block(FILE *f, unsigned char *aseg, int addr,
 		ihex_write_block(f, aseg, addr, section_len);
 		break;
 	case F_ABS:
+	case F_COM:
 	case F_BIN00:
 	case F_BINFF:
 		fwrite(aseg, 1, section_len, f);
@@ -144,6 +146,7 @@ void initialize_out(FILE *f, int oformat, int entry_point)
 		fwrite(buf, 1, sizeof(buf), f);
 		}
 		break;
+	case F_COM:
 	case F_BIN00:
 	case F_BINFF:
 		break;
@@ -165,6 +168,7 @@ void finalize_out(FILE *f, int oformat, int entry_point)
 		ihex_write_record(f, 0, entry_point, 1, NULL);
 		break;
 	case F_ABS:
+	case F_COM:
 	case F_BIN00:
 	case F_BINFF:
 		break;
@@ -253,6 +257,8 @@ int do_out(FILE *f, int oformat, int entry_point)
 	initialize_out(f, oformat, entry_point);
 	if (oformat == F_ABS) {
 		addr = prog_load;
+	} else if (oformat == F_COM) {
+		addr = 0x0100;
 	}
 	while (1) {
 		gap_len = unmarked_len(addr);
