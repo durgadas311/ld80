@@ -29,6 +29,9 @@
 
 <p>Addresses below are within the 0000-FFFF range and are expressed in hexadecimal notation. Addresses prefixed by percent (%) character as %NNNN are not absolute but the linker is instructed to place following segments on NNNN-boundary. E.g. -D%10 causes the following data segments to be located on paragraph (16 byte) boundary.</p>
 
+<p>Caution: the file type of <i>outfile</i> will override <i>oformat</i>, so it may
+be necessary to use <b>-O</b> after <b>-o</b>.
+
 <dl>
 
 <dt id="o-outfile"><b>-o</b> <i>outfile</i></dt>
@@ -106,6 +109,10 @@ If an alternate entry point is defined, a jump to it will be placed at 0x0100.</
 <b>-P</b> and <b>-D</b> should not be used.
 If an alternate entry point is defined, a jump to it will be placed at 0x0000.</p>
 
+<p><b>bspr</b>: CP/M Banked .SPR file format. Program ORG is set to 0x0000.
+<b>-P</b> and <b>-D</b> should not be used.
+If an alternate entry point is defined, a jump to it will be placed at 0x0000.</p>
+
 </dd>
 <dt id="W-warns"><b>-W</b> <i>warns</i></dt>
 <dd>
@@ -174,7 +181,7 @@ If an alternate entry point is defined, a jump to it will be placed at 0x0000.</
 <p>Extension link item X&#39;35&#39; (COBOL overlay segment sentinel) is also unimplemented due to the same reason. However other extension link items (known as arithmetic fixups) are fully implemented.</p>
 
 <p>Special link extensions (item 4) are not allowed
-in object files for PRL and SPR formats.
+in object files for PRL, SPR, and Banked SPR formats.
 This is because there is currently no way to determine
 relocation bitmaps for those items.
 Digital Research's LINK.COM also did not recognize those items.

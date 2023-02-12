@@ -18,13 +18,14 @@
 #define F_COM		5	/* CP/M COM */
 #define F_PRL		6	/* CP/M PRL */
 #define F_SPR		7	/* CP/M SPR */
+#define F_BSPR		8	/* CP/M Banked SPR */
 
 /* oformats that (may) require CP/M-style JMP ENTRY */
-#define IS_CPM(of)	((of) == F_COM || (of) == F_PRL || (of) == F_SPR)
+#define IS_CPM(of)	((of) == F_COM || (of) == F_PRL || (of) == F_SPR || (of) == F_BSPR)
 /* CP/M oformats that use ORG 0100h */
 #define IS_CPM0100(of)	((of) == F_COM || (of) == F_PRL)
 /* CP/M oformats that add a relocation bitmap */
-#define IS_CPMRELO(of)	((of) == F_SPR || (of) == F_PRL)
+#define IS_CPMRELO(of)	((of) == F_SPR || (of) == F_PRL || (of) == F_BSPR)
 
 /* segment types */
 #define	T_ABSOLUTE	0x00
@@ -155,8 +156,9 @@ int read_object_file(char *, int, int);
 void set_base_address(int, char *, int, int);
 void mark_uncommon(char *);
 void add_item(struct object_item *, char *);
+int segment_len(int);
 void delete_section(int, char *);
-void relocate_sections(void);
+void relocate_sections(int);
 void dump_sections(void);
 void init_section(void);
 void join_sections(int);

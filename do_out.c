@@ -91,6 +91,7 @@ void write_gap(FILE *f, int count, int oformat)
 		break;
 	case F_PRL:
 	case F_SPR:
+	case F_BSPR:
 	case F_ABS:
 	case F_COM:
 	case F_BIN00:
@@ -116,6 +117,7 @@ void write_block(FILE *f, unsigned char *aseg, int addr,
 		break;
 	case F_PRL:
 	case F_SPR:
+	case F_BSPR:
 	case F_ABS:
 	case F_COM:
 	case F_BIN00:
@@ -153,15 +155,17 @@ void initialize_out(FILE *f, int oformat, int entry_point)
 		break;
 	case F_PRL:
 	case F_SPR:
+	case F_BSPR:
 		{
 		static unsigned char buf[256];
 		memset(buf, 0, sizeof(buf));
 		buf[1] = prog_len;
 		buf[2] = prog_len >> 8;
-		/* TODO: banked SPR
-		 * buf[10] = bnk_len;
-		 * buf[11] = bnk_len >> 8;
-		 */
+		if (oformat == F_BSPR) {
+			int len = segment_len(T_CODE);
+			buf[10] = len;
+			buf[11] = len >> 8;
+		}
 		fwrite(buf, 1, sizeof(buf), f);
 		}
 		break;
@@ -188,6 +192,7 @@ void finalize_out(FILE *f, int oformat, int entry_point, unsigned char *rbits)
 		break;
 	case F_PRL:
 	case F_SPR:
+	case F_BSPR:
 		/* assert(rbits) */
 		/* TODO: error if (prog_load % 8 != 0) */
 		fwrite(rbits + (prog_load / 8), 1, (prog_len + 7) / 8, f);

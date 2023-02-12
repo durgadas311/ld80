@@ -253,6 +253,20 @@ void init_section(void)
 	}
 }
 
+int segment_len(int type)
+{
+	struct segment *seg;
+	struct section *p;
+	int len = 0;
+
+	if (type >= T_COMMON) return -1;
+	seg = search_segment(type, "", A_ENTER);
+	for (p = seg->secs; p; p = p->next) {
+		len += p->len;
+	}
+	return len;
+}
+
 void delete_section(int type, char *filename)
 {
 	struct segment *seg;
@@ -396,7 +410,7 @@ void dump_sections(void)
 }
 #endif	/* ifdef DEBUG */
 
-void relocate_sections(void)
+void relocate_sections(int oformat)
 {
 	struct section *sp;
 	struct segment *segp;
@@ -404,6 +418,9 @@ void relocate_sections(void)
 	int m;
 
 	for (segp=segv+T_CODE; segp<segv+T_COMMON || segp->secs; segp++) {
+		if (oformat == F_BSPR && segp->type == T_DATA) {
+			loc = (loc + 255) & ~255;
+		}
 		if (segp->uncommon) for (sp=segp->secs; sp; sp=sp->next) {
 			if (sp->base < 0 ) {
 				m = -sp->base;

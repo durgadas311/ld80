@@ -244,7 +244,7 @@ int main(int argc,char **argv)
 #define	IFDEBUG(x)
 #endif
 	IFDEBUG( printf("\nRelocating sections\n"); )
-	relocate_sections();
+	relocate_sections(oformat);
 	IFDEBUG( dump_sections(); )
 
 	IFDEBUG( printf("\nSetting symbol values\n"); )
@@ -348,6 +348,7 @@ int setformat(char *name, int *format)
 	else if (!strcmp(name, "com")) *format = F_COM;
 	else if (!strcmp(name, "prl")) *format = F_PRL;
 	else if (!strcmp(name, "spr")) *format = F_SPR;
+	else if (!strcmp(name, "bspr")) *format = F_BSPR;
 	else known = 0;
 
 	return known;
@@ -366,7 +367,7 @@ void usage(void)
 "Usage:\n"
 "ld80 [-O oformat] [-cmV] [-W warns] -o ofile [-s symfile] [-U name] ...\n"
 "     [-S symsize] input ...\n"
-"where oformat: ihex | hex | bin | binff | cmd | abs | com | prl | spr\n"
+"where oformat: ihex | hex | bin | binff | cmd | abs | com | prl | spr | bspr\n"
 "        warns: extchain\n"
 "        input: [-l] [-P address] [-D address] [-C name,address] [-E entry]... file\n"
 	);
