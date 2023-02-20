@@ -75,7 +75,16 @@ void convert_chain_to_nodes(char *name, int offset, struct section *section)
 	}
 }
 
-void set_fixups(unsigned char *rbits)
+static void add_relo(void *rbits, int off)
+{
+	short *relo = rbits;
+	if (relo[0] == 0) {
+		relo[0] = 1;
+	}
+	relo[relo[0]++] = (short)off + 6; /* offset for PIC header */
+}
+
+void set_fixups(int oformat, unsigned char *rbits)
 {
 	struct segment *segp;
 	struct section *sp;
@@ -86,7 +95,11 @@ void set_fixups(unsigned char *rbits)
 		for (sp=segp->secs; sp; sp=sp->next) {/* all sections */
 			for (f=sp->fixups; f; ff=f, f=f->next, free(ff)) {
 				if (rbits) {
-					SET_BIT(rbits, sp->base + f->lc + 1);
+					if (oformat == F_PIC) {
+						add_relo(rbits, sp->base + f->lc);
+					} else {
+						SET_BIT(rbits, sp->base + f->lc + 1);
+					}
 				}
 				p = sp->buffer + f->lc;
 				*((unsigned short *)p) = (unsigned short)
@@ -168,7 +181,7 @@ void sort_nodes(struct section *sp)
 	return;
 }
 
-void process_nodes(unsigned char *rbits)
+void process_nodes(int oformat, unsigned char *rbits)
 {
 	struct segment *segp;
 	struct section *sp;
@@ -218,7 +231,11 @@ void process_nodes(unsigned char *rbits)
 					sp, n->at.offset, n->value&0xffff);
 #endif
 				if (rbits) {
-					SET_BIT(rbits, sp->base + n->at.offset + 1);
+					if (oformat == F_PIC) {
+						add_relo(rbits, sp->base + n->at.offset);
+					} else {
+						SET_BIT(rbits, sp->base + n->at.offset + 1);
+					}
 				}
 				*((short*)p) = n->value;
 				break;

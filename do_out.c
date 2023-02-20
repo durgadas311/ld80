@@ -9,6 +9,7 @@
 static int prog_load;
 static int prog_end;
 static int prog_len;
+static int relo_len;
 
 static int
 ihex_write_record (FILE *f, int count, int addr, int type, unsigned char *data)
@@ -92,6 +93,7 @@ void write_gap(FILE *f, int count, int oformat)
 	case F_PRL:
 	case F_SPR:
 	case F_BSPR:
+	case F_PIC:
 	case F_ABS:
 	case F_COM:
 	case F_BIN00:
@@ -118,6 +120,7 @@ void write_block(FILE *f, unsigned char *aseg, int addr,
 	case F_PRL:
 	case F_SPR:
 	case F_BSPR:
+	case F_PIC:
 	case F_ABS:
 	case F_COM:
 	case F_BIN00:
@@ -137,6 +140,21 @@ void initialize_out(FILE *f, int oformat, int entry_point)
 {
 	switch (oformat) {
 	case F_IHEX:
+		break;
+	case F_PIC:
+		{
+		static unsigned char buf[6];
+		int rlen = relo_len + 6; /* offset for PIC header */
+		int rpos = prog_len + 6; /* offset for PIC header */
+		int total = prog_len + rlen;
+		buf[0] = 0xff;
+		buf[1] = 1;
+		buf[2] = total ;
+		buf[3] = total >> 8;
+		buf[4] = rpos;
+		buf[5] = rpos >> 8;
+		fwrite(buf, 1, sizeof(buf), f);
+		}
 		break;
 	case F_ABS:
 		{
@@ -196,6 +214,14 @@ void finalize_out(FILE *f, int oformat, int entry_point, unsigned char *rbits)
 		/* assert(rbits) */
 		/* TODO: error if (prog_load % 8 != 0) */
 		fwrite(rbits + (prog_load / 8), 1, (prog_len + 7) / 8, f);
+		break;
+	case F_PIC:
+		{
+		/* assert(rbits) */
+		unsigned short *relo = (unsigned short *)rbits;
+		fwrite(&relo[1], 1, relo_len, f);
+		/* TODO: fill to 256 boundary? */
+		}
 		break;
 	case F_ABS:
 	case F_COM:
@@ -284,12 +310,16 @@ int do_out(FILE *f, int oformat, int entry_point, unsigned char *rbits)
 	extern unsigned char *aseg;
 
 	program_range();
-	initialize_out(f, oformat, entry_point);
 	if (oformat == F_ABS) {
+		addr = prog_load;
+	} else if (oformat == F_PIC) {
+		unsigned short *relo = (unsigned short *)rbits;
+		relo_len = relo[0] * sizeof(*relo); /* already +1 */
 		addr = prog_load;
 	} else if (IS_CPM0100(oformat)) {
 		addr = 0x0100;
 	}
+	initialize_out(f, oformat, entry_point);
 	while (1) {
 		gap_len = unmarked_len(addr);
 		addr += gap_len;

@@ -19,6 +19,7 @@
 #define F_PRL		6	/* CP/M PRL */
 #define F_SPR		7	/* CP/M SPR */
 #define F_BSPR		8	/* CP/M Banked SPR */
+#define F_PIC		9	/* HDOS PIC (DVD, etc) */
 
 /* oformats that (may) require CP/M-style JMP ENTRY */
 #define IS_CPM(of)	((of) == F_COM || (of) == F_PRL || (of) == F_SPR || (of) == F_BSPR)
@@ -174,10 +175,10 @@ void set_symbols(void);
 void print_symbol_table(FILE *);
 
 void add_fixup(struct section *, struct section *, int);
-void set_fixups(unsigned char *);
+void set_fixups(int, unsigned char *);
 void resolve_externals(void);
 void convert_chain_to_nodes(char *, int, struct section *);
-void process_nodes(unsigned char *);
+void process_nodes(int, unsigned char *);
 struct node *add_node(struct section *, int, int);
 
 int do_out(FILE *, int, int, unsigned char *);

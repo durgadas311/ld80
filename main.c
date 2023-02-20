@@ -166,6 +166,8 @@ int main(int argc,char **argv)
 
 	if (oformat == F_ABS) {
 		set_base_address(T_CODE, "", 0x2280, 0);
+	} else if (oformat == F_PIC) {
+		set_base_address(T_CODE, "", 0x0000, 0);
 	}
 
 	/*
@@ -253,16 +255,18 @@ int main(int argc,char **argv)
 
 	if (IS_CPMRELO(oformat)) {
 		rbits = calloc_or_die(1, 0x10000 / 8);
+	} else if (oformat == F_PIC) {
+		rbits = calloc_or_die(1, 0x10000); // overkill, but always enough
 	}
 	IFDEBUG( printf("\nSetting fixups\n"); )
-	set_fixups(rbits);
+	set_fixups(oformat, rbits);
 	IFDEBUG( dump_sections(); )
 
 	IFDEBUG( printf("\nResolving externals\n"); )
 	resolve_externals();
 
 	IFDEBUG( printf("\nProcessing nodes\n"); )
-	process_nodes(rbits);
+	process_nodes(oformat, rbits);
 	IFDEBUG( dump_sections(); )
 
 	IFDEBUG( printf("\nJoining sections\n"); )
@@ -345,6 +349,7 @@ int setformat(char *name, int *format)
 	else if (!strcmp(name, "binff")) *format = F_BINFF;
 	else if (!strcmp(name, "cmd")) *format = F_CMD;
 	else if (!strcmp(name, "abs")) *format = F_ABS;
+	else if (!strcmp(name, "pic")) *format = F_PIC;
 	else if (!strcmp(name, "com")) *format = F_COM;
 	else if (!strcmp(name, "prl")) *format = F_PRL;
 	else if (!strcmp(name, "spr")) *format = F_SPR;
